@@ -1,0 +1,173 @@
+name: CI
+
+# Integracao Continua: roda em toda branch do Gitflow e em todo Pull Request.
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+      - 'release/**'
+      - 'hotfix/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+env:
+  NODE_VERSION_PADRAO: '20'
+
+jobs:
+  # ---------------------------------------------------------------- stage: lint
+  lint:
+    name: Lint (padroes de codigo)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION_PADRAO }}
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Rodar o ESLint
+        run: npm run lint
+
+  # ---------------------------------------------------------------- stage: test
+  # Depende do lint. Roda em paralelo com o job de seguranca.
+  test:
+    name: Testes (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['18', '20']
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Rodar os testes com cobertura
+        run: npm run test:coverage
+
+      - name: Publicar o relatorio de cobertura
+        if: matrix.node == '20'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura
+          path: coverage/
+          retention-days: 7
+
+  # ------------------------------------------------------------ stage: security
+  # Depende do lint. Roda em paralelo com os testes.
+  security:
+    name: Testes de seguranca
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION_PADRAO }}
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Auditoria de vulnerabilidades nas dependencias
+        run: npm audit --audit-level=high
+
+      - name: Procurar segredos escritos direto no codigo
+        run: |
+          echo "Varrendo o codigo em busca de segredos expostos..."
+          PADRAO='(AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|(password|senha|secret|api_key)[[:space:]]*=[[:space:]]*["'"'"'][^"'"'"']{8,})'
+          if grep -rInE "$PADRAO" src public 2>/dev/null; then
+            echo "::error::Possivel segredo encontrado no codigo-fonte."
+            exit 1
+          fi
+          echo "Nenhum segredo encontrado."
+
+  # --------------------------------------------------------------- stage: build
+  # So executa se testes E seguranca passarem. Se um deles falhar,
+  # este job aparece como "skipped" e a pipeline inteira para aqui.
+  build:
+    name: Build da imagem Docker
+    runs-on: ubuntu-latest
+    needs: [test, security]
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Construir a imagem
+        run: docker build --build-arg APP_VERSION=ci-${{ github.sha }} -t projeto-devops:ci .
+
+      - name: Subir o container
+        run: docker run -d --name smoke -p 3000:3000 projeto-devops:ci
+
+      - name: Smoke test no endpoint /health
+        run: |
+          for tentativa in $(seq 1 15); do
+            if curl -fsS http://localhost:3000/health > /tmp/health.json; then
+              echo "Aplicacao respondeu:"
+              cat /tmp/health.json
+              exit 0
+            fi
+            echo "Aguardando a aplicacao subir... ($tentativa/15)"
+            sleep 2
+          done
+          echo "::error::A aplicacao nao respondeu no /health."
+          docker logs smoke
+          exit 1
+
+      - name: Validar a criacao de uma tarefa no container
+        run: |
+          curl -fsS -X POST http://localhost:3000/api/tasks \
+            -H 'Content-Type: application/json' \
+            -d '{"title":"Tarefa criada pelo smoke test","priority":"alta"}' | tee /tmp/task.json
+          grep -q '"id":1' /tmp/task.json
+
+      - name: Derrubar o container
+        if: always()
+        run: docker rm -f smoke || true
+
+  # ------------------------------------------------------------------- resultado
+  resultado:
+    name: Resultado da esteira
+    runs-on: ubuntu-latest
+    needs: [lint, test, security, build]
+    if: always()
+    steps:
+      - name: Resumir no Summary
+        run: |
+          {
+            echo "## Resultado da esteira de CI"
+            echo ""
+            echo "| Stage | Status |"
+            echo "|-------|--------|"
+            echo "| lint | ${{ needs.lint.result }} |"
+            echo "| test | ${{ needs.test.result }} |"
+            echo "| security | ${{ needs.security.result }} |"
+            echo "| build | ${{ needs.build.result }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Falhar se alguma stage nao passou
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
