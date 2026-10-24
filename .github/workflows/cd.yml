@@ -1,0 +1,139 @@
+name: CD
+
+# Entrega Continua: publica a imagem, cria a Release e atualiza a pagina.
+# So dispara a partir de main (ou de uma tag de versao vX.Y.Z).
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+  pages: write
+  id-token: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGEM: ${{ github.repository }}
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ------------------------------------------------------------- stage: release
+  release:
+    name: Publicar imagem no GHCR
+    runs-on: ubuntu-latest
+    outputs:
+      versao: ${{ steps.versao.outputs.valor }}
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Definir a versao da aplicacao
+        id: versao
+        run: |
+          # Variavel do repositorio (Settings > Secrets and variables > Actions > Variables).
+          # Se nao estiver cadastrada, cai para a tag do git ou para o package.json.
+          VERSAO="${{ vars.APP_VERSION }}"
+          if [ -z "$VERSAO" ]; then
+            if [ "${{ startsWith(github.ref, 'refs/tags/v') }}" = "true" ]; then
+              VERSAO="${GITHUB_REF_NAME#v}"
+            else
+              VERSAO="$(node -p "require('./package.json').version")+${GITHUB_SHA::7}"
+            fi
+          fi
+          echo "valor=$VERSAO" >> "$GITHUB_OUTPUT"
+          echo "Versao desta entrega: $VERSAO"
+
+      - name: Autenticar no GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calcular as tags da imagem
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGEM }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Construir e publicar a imagem
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          build-args: APP_VERSION=${{ steps.versao.outputs.valor }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Resumir a entrega
+        run: |
+          {
+            echo "## Imagem publicada"
+            echo ""
+            echo "Versao: \`${{ steps.versao.outputs.valor }}\`"
+            echo ""
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ------------------------------------------------------- stage: github release
+  github-release:
+    name: Criar a Release no GitHub
+    runs-on: ubuntu-latest
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publicar a Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --notes-start-tag "$(git describe --tags --abbrev=0 "$GITHUB_REF_NAME^" 2>/dev/null || echo "$GITHUB_REF_NAME")"
+
+  # -------------------------------------------------------------- stage: deploy
+  deploy-pages:
+    name: Publicar a pagina no GitHub Pages
+    runs-on: ubuntu-latest
+    needs: release
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar o Pages
+        uses: actions/configure-pages@v5
+
+      - name: Empacotar o conteudo de public/
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: Publicar
+        id: deploy
+        uses: actions/deploy-pages@v4

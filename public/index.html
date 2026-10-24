@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projeto DevOps — Esteira CI/CD</title>
+<style>
+  :root {
+    --bg: #f6f7fb;
+    --surface: #ffffff;
+    --border: #e2e5ee;
+    --text: #1b1f2a;
+    --muted: #5b6172;
+    --accent: #4b2a78;
+    --ok: #1f8a4c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11131a;
+      --surface: #191c26;
+      --border: #2a2f3d;
+      --text: #eceef5;
+      --muted: #9aa1b4;
+      --accent: #a98cdb;
+      --ok: #4ad184;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 48px 16px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
+  }
+  main { max-width: 820px; margin: 0 auto; }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 32px; }
+  h1 { margin: 0 0 8px; font-size: 2rem; letter-spacing: -0.02em; }
+  h2 { font-size: 1.1rem; margin: 32px 0 12px; color: var(--accent); }
+  p { margin: 0 0 12px; color: var(--muted); }
+  .badge {
+    display: inline-block; padding: 4px 10px; border-radius: 999px;
+    background: var(--accent); color: #fff; font-size: .78rem; font-weight: 600;
+    letter-spacing: .04em; text-transform: uppercase;
+  }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; margin-bottom: 16px;
+  }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .stage { text-align: center; }
+  .stage strong { display: block; color: var(--text); font-size: .95rem; }
+  .stage span { font-size: .8rem; color: var(--muted); }
+  code {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 5px;
+    padding: 1px 6px; font-size: .88em;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--accent); font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+  td code { white-space: nowrap; }
+  a { color: var(--accent); }
+  footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <span class="badge">Deploy contínuo</span>
+    <h1>Projeto DevOps — API de Tarefas</h1>
+    <p>Esta página foi publicada pelo job <code>deploy-pages</code> do workflow de CD,
+       disparado automaticamente a cada merge em <code>main</code>.</p>
+    <p id="repo-link"></p>
+  </header>
+
+  <h2>Stages da esteira</h2>
+  <div class="grid">
+    <div class="card stage"><strong>lint</strong><span>ESLint</span></div>
+    <div class="card stage"><strong>test</strong><span>Jest + cobertura</span></div>
+    <div class="card stage"><strong>security</strong><span>npm audit</span></div>
+    <div class="card stage"><strong>build</strong><span>Docker + smoke test</span></div>
+    <div class="card stage"><strong>release</strong><span>Imagem no GHCR</span></div>
+    <div class="card stage"><strong>deploy</strong><span>GitHub Pages</span></div>
+  </div>
+
+  <h2>Endpoints da API</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Método</th><th>Rota</th><th>Descrição</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET</code></td><td><code>/health</code></td><td>Status e versão</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/tasks</code></td><td>Lista tarefas</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/tasks/:id</code></td><td>Busca por id</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/tasks</code></td><td>Cria tarefa</td></tr>
+        <tr><td><code>PATCH</code></td><td><code>/api/tasks/:id/complete</code></td><td>Conclui tarefa</td></tr>
+        <tr><td><code>DELETE</code></td><td><code>/api/tasks/:id</code></td><td>Remove tarefa</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Modelo de branches</h2>
+  <div class="card">
+    <p><code>main</code> → produção, protegida por tags de versão.<br>
+       <code>develop</code> → integração.<br>
+       <code>feature/*</code>, <code>release/*</code>, <code>hotfix/*</code> → fluxo Gitflow.</p>
+  </div>
+
+  <footer>
+    Centro Universitário de João Pessoa — Cultura e Práticas DevOps ·
+    Prof. Israel Cunha · Gustavo Themyus
+  </footer>
+</main>
+<script>
+  // Monta o link do repositório a partir do domínio do GitHub Pages
+  // (usuario.github.io/projeto-devops -> github.com/usuario/projeto-devops).
+  (function () {
+    var host = location.hostname;
+    var el = document.getElementById('repo-link');
+    if (host.endsWith('.github.io')) {
+      var usuario = host.replace('.github.io', '');
+      var repo = location.pathname.split('/').filter(Boolean)[0] || 'projeto-devops';
+      var url = 'https://github.com/' + usuario + '/' + repo;
+      el.innerHTML = 'Código-fonte e execuções da pipeline: <a href="' + url + '">' + url + '</a>';
+    } else {
+      el.textContent = 'Executando localmente.';
+    }
+  })();
+</script>
+</body>
+</html>
