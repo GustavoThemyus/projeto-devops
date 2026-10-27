@@ -5,6 +5,13 @@ e versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Não publicado]
 
+## [1.0.1] — 2026-10-27
+
+### Corrigido
+
+- Títulos compostos apenas por espaços em branco eram aceitos na criação da tarefa.
+  A validação passa a usar `title.trim()` e o título é normalizado ao ser salvo.
+
 ## [1.0.0] — 2026-10-27
 
 ### Adicionado

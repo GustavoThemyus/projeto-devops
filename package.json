@@ -1,6 +1,6 @@
 {
   "name": "projeto-devops",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "API de tarefas usada para demonstrar uma esteira de CI/CD com GitHub Actions e Gitflow",
   "main": "src/server.js",
   "engines": {

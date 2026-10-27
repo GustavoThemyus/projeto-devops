@@ -86,3 +86,13 @@ describe('consulta, conclusão e remoção', () => {
   });
 });
 
+// --- hotfix v1.0.1 ---
+describe('normalização do título (hotfix v1.0.1)', () => {
+  test('rejeita título composto apenas por espaços', () => {
+    expect(() => tasks.create({ title: '   ' })).toThrow(tasks.ValidationError);
+  });
+
+  test('remove os espaços das pontas do título', () => {
+    expect(tasks.create({ title: '  Com espaços  ' }).title).toBe('Com espaços');
+  });
+});

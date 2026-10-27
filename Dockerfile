@@ -9,7 +9,7 @@ RUN npm ci --omit=dev
 # ---------- runtime ----------
 FROM node:20-alpine AS runtime
 
-ARG APP_VERSION=1.0.0
+ARG APP_VERSION=1.0.1
 ENV APP_VERSION=${APP_VERSION} \
     NODE_ENV=production \
     PORT=3000

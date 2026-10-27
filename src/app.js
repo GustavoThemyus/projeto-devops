@@ -3,7 +3,7 @@
 const express = require('express');
 const tasks = require('./tasks');
 
-const APP_VERSION = process.env.APP_VERSION || '1.0.0';
+const APP_VERSION = process.env.APP_VERSION || '1.0.1';
 
 function createApp() {
   const app = express();
