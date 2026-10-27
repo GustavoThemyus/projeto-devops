@@ -1,7 +1,7 @@
 # Projeto DevOps — API de Tarefas com esteira CI/CD
 
-[![CI](https://github.com/SEU-USUARIO/projeto-devops/actions/workflows/ci.yml/badge.svg)](https://github.com/SEU-USUARIO/projeto-devops/actions/workflows/ci.yml)
-[![CD](https://github.com/SEU-USUARIO/projeto-devops/actions/workflows/cd.yml/badge.svg)](https://github.com/SEU-USUARIO/projeto-devops/actions/workflows/cd.yml)
+[![CI](https://github.com/GustavoThemyus/projeto-devops/actions/workflows/ci.yml/badge.svg)](https://github.com/GustavoThemyus/projeto-devops/actions/workflows/ci.yml)
+[![CD](https://github.com/GustavoThemyus/projeto-devops/actions/workflows/cd.yml/badge.svg)](https://github.com/GustavoThemyus/projeto-devops/actions/workflows/cd.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Trabalho da disciplina **Cultura e Práticas DevOps** — Centro Universitário de João Pessoa (UNIPÊ),
@@ -105,8 +105,8 @@ curl -s localhost:3000/health
 ### Consumindo a imagem publicada
 
 ```bash
-docker pull ghcr.io/SEU-USUARIO/projeto-devops:latest
-docker run --rm -p 3000:3000 ghcr.io/SEU-USUARIO/projeto-devops:latest
+docker pull ghcr.io/gustavothemyus/projeto-devops:latest
+docker run --rm -p 3000:3000 ghcr.io/gustavothemyus/projeto-devops:latest
 ```
 
 ---

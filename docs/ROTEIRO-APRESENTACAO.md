@@ -204,7 +204,7 @@ Na aba **Actions**, agora rodando o workflow **CD**:
 Se quiser fechar com chave de ouro, rode a imagem publicada na frente da turma:
 
 ```bash
-docker run --rm -p 3000:3000 ghcr.io/SEU-USUARIO/projeto-devops:1.1.0
+docker run --rm -p 3000:3000 ghcr.io/gustavothemyus/projeto-devops:1.1.0
 ```
 
 ```bash
