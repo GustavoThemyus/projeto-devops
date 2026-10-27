@@ -48,10 +48,13 @@ function get(id) {
 }
 
 function create({ title, priority = 'media' } = {}) {
-  if (typeof title !== 'string' || title.length === 0) {
+  // DEMO: trocar `title.trim().length` por `title.length` quebra o teste
+  // "rejeita título composto apenas por espaços". Use essa linha para mostrar
+  // a pipeline falhando no stage de test (ver docs/ROTEIRO-APRESENTACAO.md).
+  if (typeof title !== 'string' || title.trim().length === 0) {
     throw new ValidationError('O título da tarefa é obrigatório');
   }
-  if (title.length > 120) {
+  if (title.trim().length > 120) {
     throw new ValidationError('O título deve ter no máximo 120 caracteres');
   }
   if (!PRIORIDADES.includes(priority)) {
@@ -60,7 +63,7 @@ function create({ title, priority = 'media' } = {}) {
 
   const task = {
     id: nextId,
-    title,
+    title: title.trim(),
     priority,
     done: false,
     createdAt: new Date().toISOString(),
