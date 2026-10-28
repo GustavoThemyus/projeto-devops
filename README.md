@@ -169,3 +169,4 @@ de uma stage falhando ao vivo, está em
 ## Licença
 
 MIT. Ver [LICENSE](LICENSE).
+<!-- demonstracao em sala -->
