@@ -1,15 +1,14 @@
-# Projeto DevOps — API de Tarefas com esteira CI/CD
+# Projeto DevOps: API de Tarefas com esteira CI/CD
 
 [![CI](https://github.com/GustavoThemyus/projeto-devops/actions/workflows/ci.yml/badge.svg)](https://github.com/GustavoThemyus/projeto-devops/actions/workflows/ci.yml)
 [![CD](https://github.com/GustavoThemyus/projeto-devops/actions/workflows/cd.yml/badge.svg)](https://github.com/GustavoThemyus/projeto-devops/actions/workflows/cd.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Trabalho da disciplina **Cultura e Práticas DevOps** — Centro Universitário de João Pessoa (UNIPÊ),
+Trabalho da disciplina **Cultura e Práticas DevOps**, do Centro Universitário de João Pessoa (UNIPÊ),
 Prof. Israel Cunha, Aula 07 (*Construindo uma Esteira / Pipeline*).
 
-A aplicação é uma API REST pequena de propósito: ela existe para dar substância à esteira.
-O que está sendo avaliado é a **pipeline**, o **Gitflow** e o comportamento da esteira
-quando um estágio falha.
+A aplicação é uma API REST simples. O foco do trabalho é a **pipeline**, o **Gitflow**
+e o comportamento da esteira quando um estágio falha.
 
 ---
 
@@ -18,7 +17,7 @@ quando um estágio falha.
 Dois workflows separados, para a distinção entre Integração Contínua e Entrega Contínua
 ficar visível na aba **Actions**.
 
-### `CI` — Integração Contínua (`.github/workflows/ci.yml`)
+### `CI`: Integração Contínua (`.github/workflows/ci.yml`)
 
 Dispara em `push` para `main`, `develop`, `feature/**`, `release/**`, `hotfix/**`
 e em todo Pull Request para `main` ou `develop`.
@@ -45,13 +44,13 @@ e em todo Pull Request para `main` ou `develop`.
                     └──────────────────────┘
 ```
 
-- `test` e `security` rodam **em paralelo** — um erro em um não derruba o outro
-  (é a situação dos slides 92–93).
+- `test` e `security` rodam **em paralelo**. Um erro em um não derruba o outro,
+  como nos slides 92 e 93.
 - `build` tem `needs: [test, security]`. Se qualquer um dos dois falhar, o `build`
-  aparece como **skipped** e a esteira para ali — exatamente o comportamento do slide 97.
+  aparece como **skipped** e a esteira para ali, como no slide 97.
 - O job `resultado` fecha a execução com um resumo em tabela no Summary do run.
 
-### `CD` — Entrega Contínua (`.github/workflows/cd.yml`)
+### `CD`: Entrega Contínua (`.github/workflows/cd.yml`)
 
 Dispara em `push` para `main`, em tags `v*.*.*` e manualmente (`workflow_dispatch`).
 
@@ -61,8 +60,8 @@ Dispara em `push` para `main`, em tags `v*.*.*` e manualmente (`workflow_dispatc
 | `github-release` | Só em tag `v*`: cria a **Release** no GitHub com as notas geradas automaticamente |
 | `deploy-pages` | Publica `public/` no **GitHub Pages** |
 
-Toda a autenticação usa o `GITHUB_TOKEN` que o próprio Actions injeta — **não há secret
-para cadastrar**. A versão da aplicação vem da variável de repositório `APP_VERSION`
+Toda a autenticação usa o `GITHUB_TOKEN` que o próprio Actions injeta, então **não há
+secret para cadastrar**. A versão da aplicação vem da variável de repositório `APP_VERSION`
 (Settings → Secrets and variables → Actions → Variables) e, se ela não existir,
 cai para a tag do git ou para o `package.json`.
 
@@ -74,7 +73,7 @@ API REST de tarefas, em Node.js + Express, com store em memória.
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| `GET` | `/health` | Status, versão e uptime — usado pelo smoke test da pipeline |
+| `GET` | `/health` | Status, versão e uptime, usado pelo smoke test da pipeline |
 | `GET` | `/api/tasks` | Lista as tarefas (aceita `?done=true` / `?done=false`) |
 | `GET` | `/api/tasks/:id` | Busca uma tarefa |
 | `POST` | `/api/tasks` | Cria uma tarefa (`{ "title": "...", "priority": "baixa\|media\|alta" }`) |
@@ -129,14 +128,14 @@ hotfix                                       ●
 | `feature/*` | `develop` | `develop` | CI |
 | `release/*` | `develop` | `main` + `develop` | CI |
 | `hotfix/*` | `main` | `main` + `develop` | CI |
-| `develop` | — | — | CI |
-| `main` | — | — | CI + **CD** |
-| tag `v*.*.*` | `main` | — | **CD** (imagem + Release + Pages) |
+| `develop` | - | - | CI |
+| `main` | - | - | CI + **CD** |
+| tag `v*.*.*` | `main` | - | **CD** (imagem + Release + Pages) |
 
 Detalhes e comandos em [`docs/GITFLOW.md`](docs/GITFLOW.md).
 
-O roteiro da apresentação — com os comandos prontos para copiar, na ordem,
-incluindo a demonstração de uma stage falhando ao vivo — está em
+O roteiro da apresentação, com os comandos prontos para copiar e a demonstração
+de uma stage falhando ao vivo, está em
 [`docs/ROTEIRO-APRESENTACAO.md`](docs/ROTEIRO-APRESENTACAO.md).
 
 ---
@@ -169,4 +168,4 @@ incluindo a demonstração de uma stage falhando ao vivo — está em
 
 ## Licença
 
-MIT — ver [LICENSE](LICENSE).
+MIT. Ver [LICENSE](LICENSE).

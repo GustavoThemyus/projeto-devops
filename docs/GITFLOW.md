@@ -4,12 +4,12 @@
 
 | Branch | Vida | Origem | Destino | Workflow |
 |--------|------|--------|---------|----------|
-| `main` | permanente | — | — | CI + **CD** |
-| `develop` | permanente | `main` | — | CI |
+| `main` | permanente | - | - | CI + **CD** |
+| `develop` | permanente | `main` | - | CI |
 | `feature/*` | temporária | `develop` | `develop` | CI |
 | `release/*` | temporária | `develop` | `main` **e** `develop` | CI |
 | `hotfix/*` | temporária | `main` | `main` **e** `develop` | CI |
-| tag `v*.*.*` | — | `main` | — | **CD** (GHCR + Release + Pages) |
+| tag `v*.*.*` | - | `main` | - | **CD** (GHCR + Release + Pages) |
 
 Regra prática: **só a `main` entrega**. Toda a integração acontece na `develop`,
 e nenhuma branch de trabalho vive mais do que o necessário.
@@ -17,7 +17,7 @@ e nenhuma branch de trabalho vive mais do que o necessário.
 ## O grafo deste repositório
 
 ```
-main      ──●──────────────────────●────────────────●──  v1.0.0 … v1.0.1
+main      ──●──────────────────────●────────────────●──  v1.0.0, v1.0.1
              \                    /                /
 release       \            ●────●                 /
                \          /                      /

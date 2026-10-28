@@ -11,7 +11,7 @@ Tempo total: **8 a 12 minutos**. Todos os comandos estão prontos para copiar e 
 
 ---
 
-## 1. Abertura — o repositório e o Gitflow (1 min)
+## 1. Abertura: o repositório e o Gitflow (1 min)
 
 Mostre o grafo de branches já construído:
 
@@ -33,15 +33,15 @@ git branch -a && git tag
 
 Abra `.github/workflows/ci.yml` e aponte três coisas:
 
-1. O gatilho `on:` — a esteira roda em toda branch do Gitflow e em todo Pull Request.
-2. `needs:` — `test` e `security` dependem de `lint`, e rodam **em paralelo** entre si.
-3. `build` tem `needs: [test, security]` — **é aqui que a pipeline para se algo falhar.**
+1. O gatilho `on:`: a esteira roda em toda branch do Gitflow e em todo Pull Request.
+2. `needs:`: `test` e `security` dependem de `lint`, e rodam **em paralelo** entre si.
+3. `build` tem `needs: [test, security]`. **É aqui que a pipeline para se algo falhar.**
 
 Depois abra `.github/workflows/cd.yml` e mostre que ele só dispara de `main` e de tags.
 
 ---
 
-## 3. Gitflow ao vivo — criando uma feature (2 min)
+## 3. Gitflow ao vivo: criando uma feature (2 min)
 
 ```bash
 git checkout develop
@@ -50,7 +50,7 @@ git checkout -b feature/exportar-tarefas
 
 ### Código para colar
 
-**Em `src/tasks.js`** — adicione a função antes do `module.exports`:
+**Em `src/tasks.js`**, adicione a função antes do `module.exports`:
 
 ```js
 function toCsv() {
@@ -64,8 +64,8 @@ function toCsv() {
 
 E inclua `toCsv` na lista do `module.exports`.
 
-**Em `src/app.js`** — a rota precisa vir **antes** de `/api/tasks/:id`,
-senão o Express trata `export` como um id (bom ponto para comentar em voz alta):
+**Em `src/app.js`**, a rota precisa vir **antes** de `/api/tasks/:id`,
+senão o Express trata `export` como um id:
 
 ```js
   app.get('/api/tasks/export', (req, res) => {
@@ -73,7 +73,7 @@ senão o Express trata `export` como um id (bom ponto para comentar em voz alta)
   });
 ```
 
-**Em `tests/app.test.js`** — adicione no fim do arquivo:
+**Em `tests/app.test.js`**, adicione no fim do arquivo:
 
 ```js
 describe('GET /api/tasks/export', () => {
@@ -104,7 +104,7 @@ Enquanto roda, abra o Pull Request para `develop` e mostre os checks aparecendo 
 
 ---
 
-## 4. O ponto alto — quebrando a esteira de propósito (3 min)
+## 4. Quebrando a esteira de propósito (3 min)
 
 > Este é o comportamento do slide 97: *"o pipeline é parado por qualquer erro em
 > alguma das stages"*.
@@ -130,14 +130,14 @@ git push
 
 **Na aba Actions, mostre:**
 
-- `lint` ✅ verde
-- `test` ❌ vermelho — e abra o log para mostrar a mensagem do Jest
-- `security` ✅ verde — **o erro no `test` não derrubou o `security`**, eles são independentes
-- `build` ⏭️ **skipped** — a stage de deploy nunca chegou a existir
+- `lint` em verde
+- `test` em vermelho. Abra o log para mostrar a mensagem do Jest
+- `security` em verde: **o erro no `test` não derrubou o `security`**, eles são independentes
+- `build` como **skipped**: a stage de deploy nunca chegou a existir
 - No PR: o merge fica **bloqueado**
 
-**A frase da apresentação:** *"o código quebrado não chegou nem perto de virar
-imagem Docker — a esteira barrou antes."*
+O ponto a destacar: o código quebrado não virou imagem Docker, porque a esteira
+barrou antes.
 
 ### Desfazendo
 
@@ -170,7 +170,7 @@ git commit -am "chore(release): prepara a versão 1.1.0"
 git push -u origin release/1.1.0
 ```
 
-Feche a release na `main` e crie a tag — **é a tag que dispara a entrega**:
+Feche a release na `main` e crie a tag, que é o que dispara a entrega:
 
 ```bash
 git checkout main
@@ -179,7 +179,7 @@ git tag -a v1.1.0 -m "Versão 1.1.0 - exportação em CSV"
 git push origin main --follow-tags
 ```
 
-E traga a release de volta para a `develop` (passo que muita gente esquece):
+E traga a release de volta para a `develop`:
 
 ```bash
 git checkout develop
@@ -201,7 +201,7 @@ Na aba **Actions**, agora rodando o workflow **CD**:
 | Aba **Releases** | A Release `v1.1.0` criada automaticamente, com as notas geradas dos commits |
 | Página do **GitHub Pages** | Atualizada pelo job `deploy-pages` |
 
-Se quiser fechar com chave de ouro, rode a imagem publicada na frente da turma:
+Para encerrar, rode a imagem publicada na frente da turma:
 
 ```bash
 docker run --rm -p 3000:3000 ghcr.io/gustavothemyus/projeto-devops:1.1.0
@@ -222,8 +222,8 @@ a vermelha da demonstração e a entrega final. Depois, o grafo:
 git log --graph --oneline --all --decorate | head -40
 ```
 
-**Fechamento:** *"a esteira roda em toda branch, barra o que não passa nos testes,
-e só o que chega na `main` com uma tag de versão vira imagem publicada e deploy."*
+Para fechar: a esteira roda em toda branch, barra o que não passa nos testes, e só
+o que chega na `main` com uma tag de versão vira imagem publicada e deploy.
 
 ---
 
@@ -231,7 +231,7 @@ e só o que chega na `main` com uma tag de versão vira imagem publicada e deplo
 
 | Problema | Saída |
 |----------|-------|
-| A esteira está demorando | Mostre um run **anterior** já concluído — o histórico conta a mesma história |
+| A esteira está demorando | Mostre um run **anterior** já concluído, que conta a mesma história |
 | Sem internet | `npm test` e `docker build -t projeto-devops:local .` rodam offline; mostre o YAML e explique |
 | O job de Pages falha | Em **Settings → Pages**, *Source* precisa estar em **GitHub Actions** |
 | O push da imagem falha com 403 | Em **Settings → Actions → General**, marque *Read and write permissions* |
