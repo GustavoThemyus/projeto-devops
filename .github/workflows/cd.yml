@@ -128,11 +128,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configurar o Pages
+        # Exige Settings > Pages > Source: GitHub Actions ligado no repositorio.
+        # O parametro 'enablement' nao resolve: criar o site pela API pede
+        # permissao de administracao, que o GITHUB_TOKEN nao pode receber.
         uses: actions/configure-pages@v5
-        with:
-          # Liga o Pages pela API caso o repositorio ainda nao tenha
-          # a origem definida como GitHub Actions.
-          enablement: true
 
       - name: Empacotar o conteudo de public/
         uses: actions/upload-pages-artifact@v3
