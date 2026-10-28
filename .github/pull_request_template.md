@@ -4,9 +4,9 @@
 
 ## Tipo de mudança
 
-- [ ] `feature/` — nova funcionalidade (alvo: `develop`)
-- [ ] `release/` — preparação de versão (alvo: `main`)
-- [ ] `hotfix/` — correção urgente (alvo: `main`)
+- [ ] `feature/`: nova funcionalidade (alvo: `develop`)
+- [ ] `release/`: preparação de versão (alvo: `main`)
+- [ ] `hotfix/`: correção urgente (alvo: `main`)
 - [ ] Documentação / infraestrutura
 
 ## Checklist

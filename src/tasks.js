@@ -2,8 +2,8 @@
 
 /**
  * Regra de negócio do gerenciador de tarefas.
- * O store e em memória de propósito: o foco do projeto e a esteira de CI/CD,
- * não a persistência.
+ * O store é em memória para manter o projeto simples: o foco aqui é a esteira
+ * de CI/CD, não a persistência.
  */
 
 class ValidationError extends Error {
