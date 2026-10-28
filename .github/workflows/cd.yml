@@ -129,6 +129,10 @@ jobs:
 
       - name: Configurar o Pages
         uses: actions/configure-pages@v5
+        with:
+          # Liga o Pages pela API caso o repositorio ainda nao tenha
+          # a origem definida como GitHub Actions.
+          enablement: true
 
       - name: Empacotar o conteudo de public/
         uses: actions/upload-pages-artifact@v3
