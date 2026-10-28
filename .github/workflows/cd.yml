@@ -51,6 +51,9 @@ jobs:
           echo "valor=$VERSAO" >> "$GITHUB_OUTPUT"
           echo "Versao desta entrega: $VERSAO"
 
+      - name: Preparar o Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Autenticar no GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -78,8 +81,6 @@ jobs:
           build-args: APP_VERSION=${{ steps.versao.outputs.valor }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Resumir a entrega
         run: |
