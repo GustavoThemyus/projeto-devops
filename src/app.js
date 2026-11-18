@@ -57,6 +57,14 @@ function createApp() {
     }
   });
 
+  // DEMO SAST: vulnerabilidade proposital (injecao de codigo via eval com
+  // dado vindo do usuario). O Semgrep deve barrar este trecho no job `sast`.
+  // Remover antes de qualquer merge em develop/main.
+  app.get('/api/calc', (req, res) => {
+    const resultado = eval(req.query.expr);
+    res.json({ resultado });
+  });
+
   app.use((req, res) => {
     res.status(404).json({ erro: 'Rota não encontrada' });
   });
