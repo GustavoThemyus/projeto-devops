@@ -105,13 +105,60 @@ jobs:
           fi
           echo "Nenhum segredo encontrado."
 
+  # ---------------------------------------------------------------- stage: SAST
+  # Analise estatica do codigo-fonte (Semgrep). Depende do lint e roda em
+  # paralelo com os testes e com a auditoria de dependencias.
+  sast:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Rodar o Semgrep
+        # --error faz o comando sair com codigo 1 se houver achado ERROR.
+        # O relatorio JSON e gerado mesmo quando a validacao falha.
+        run: |
+          mkdir -p relatorios
+          docker run --rm -v "$PWD:/src" -w /src semgrep/semgrep:1.97.0 \
+            semgrep scan \
+              --config p/javascript --config p/nodejs --config p/owasp-top-ten \
+              --metrics=off --severity ERROR --error \
+              --json-output=relatorios/semgrep.json \
+              src public
+
+      - name: Validar o resultado (zero achados de severidade ERROR)
+        if: always()
+        run: |
+          test -f relatorios/semgrep.json || { echo "::error::Semgrep nao gerou relatorio."; exit 1; }
+          TOTAL=$(node -p "require('./relatorios/semgrep.json').results.length")
+          {
+            echo "## SAST (Semgrep)"
+            echo ""
+            echo "Achados de severidade ERROR: **$TOTAL**"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$TOTAL" -gt 0 ]; then
+            echo "::error::O SAST encontrou $TOTAL vulnerabilidade(s) de severidade ERROR."
+            exit 1
+          fi
+          echo "SAST sem achados criticos."
+
+      - name: Publicar o relatorio do SAST
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-sast
+          path: relatorios/semgrep.json
+          retention-days: 7
+
   # --------------------------------------------------------------- stage: build
-  # So executa se testes E seguranca passarem. Se um deles falhar,
+  # So executa se testes, seguranca E SAST passarem. Se um deles falhar,
   # este job aparece como "skipped" e a pipeline inteira para aqui.
   build:
     name: Build da imagem Docker
     runs-on: ubuntu-latest
-    needs: [test, security]
+    needs: [test, security, sast]
     steps:
       - name: Baixar o codigo
         uses: actions/checkout@v4
@@ -148,11 +195,83 @@ jobs:
         if: always()
         run: docker rm -f smoke || true
 
+  # ---------------------------------------------------------------- stage: DAST
+  # Analise dinamica (OWASP ZAP baseline) contra a aplicacao em execucao.
+  # So roda depois do build: precisa de uma imagem que ja passou nos testes.
+  dast:
+    name: DAST (OWASP ZAP)
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Subir a aplicacao
+        run: |
+          docker build --build-arg APP_VERSION=dast-${{ github.sha }} -t projeto-devops:dast .
+          docker run -d --name alvo -p 3000:3000 projeto-devops:dast
+          for tentativa in $(seq 1 15); do
+            curl -fsS http://localhost:3000/health > /dev/null && exit 0
+            echo "Aguardando a aplicacao subir... ($tentativa/15)"
+            sleep 2
+          done
+          echo "::error::A aplicacao alvo nao subiu."
+          docker logs alvo
+          exit 1
+
+      - name: Rodar o ZAP baseline scan
+        # Codigos de saida do ZAP: 0 limpo, 1 falha, 2 avisos, 3 erro do scan.
+        # Avisos (2) sao tolerados aqui; a validacao abaixo decide o resultado.
+        run: |
+          mkdir -p relatorios && chmod 777 relatorios
+          set +e
+          docker run --rm --network host -v "$PWD/relatorios:/zap/wrk:rw" \
+            ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+              -t http://localhost:3000 -J zap.json -r zap.html -I
+          echo "Codigo de saida do ZAP: $?"
+          exit 0
+
+      - name: Validar o resultado (zero alertas de risco Alto)
+        run: |
+          test -f relatorios/zap.json || { echo "::error::O ZAP nao gerou relatorio."; exit 1; }
+          read ALTO MEDIO BAIXO < <(node -e '
+            const r = require("./relatorios/zap.json");
+            const c = { 3: 0, 2: 0, 1: 0 };
+            for (const s of r.site) for (const a of s.alerts) c[a.riskcode] = (c[a.riskcode] || 0) + 1;
+            console.log(c[3], c[2], c[1]);
+          ')
+          {
+            echo "## DAST (OWASP ZAP)"
+            echo ""
+            echo "| Risco | Alertas |"
+            echo "|-------|---------|"
+            echo "| Alto | $ALTO |"
+            echo "| Medio | $MEDIO |"
+            echo "| Baixo | $BAIXO |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$ALTO" -gt 0 ]; then
+            echo "::error::O DAST encontrou $ALTO alerta(s) de risco Alto."
+            exit 1
+          fi
+          echo "DAST sem alertas de risco Alto."
+
+      - name: Publicar o relatorio do DAST
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-dast
+          path: relatorios/
+          retention-days: 7
+
+      - name: Derrubar o container
+        if: always()
+        run: docker rm -f alvo || true
+
   # ------------------------------------------------------------------- resultado
   resultado:
     name: Resultado da esteira
     runs-on: ubuntu-latest
-    needs: [lint, test, security, build]
+    needs: [lint, test, security, sast, build, dast]
     if: always()
     steps:
       - name: Resumir no Summary
@@ -165,7 +284,9 @@ jobs:
             echo "| lint | ${{ needs.lint.result }} |"
             echo "| test | ${{ needs.test.result }} |"
             echo "| security | ${{ needs.security.result }} |"
+            echo "| sast | ${{ needs.sast.result }} |"
             echo "| build | ${{ needs.build.result }} |"
+            echo "| dast | ${{ needs.dast.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Falhar se alguma stage nao passou

@@ -25,29 +25,40 @@ e em todo Pull Request para `main` ou `develop`.
 ```
                     ┌──────────────────────┐
                     │        lint          │   ESLint
-                    │      (ESLint)        │
                     └──────────┬───────────┘
                                │
-              ┌────────────────┴────────────────┐
-              ▼                                 ▼
-   ┌─────────────────────┐          ┌──────────────────────┐
-   │        test         │          │       security       │
-   │  Jest + cobertura   │          │  npm audit + varredura│
-   │  Node 18 e Node 20  │          │  de segredos no código│
-   └──────────┬──────────┘          └───────────┬──────────┘
-              │                                 │
-              └────────────────┬────────────────┘
-                               ▼
-                    ┌──────────────────────┐
-                    │        build         │   docker build
-                    │  imagem + smoke test │   + curl /health
-                    └──────────────────────┘
+        ┌──────────────────────┼──────────────────────┐
+        ▼                      ▼                      ▼
+┌───────────────┐   ┌───────────────────┐   ┌──────────────────┐
+│     test      │   │     security      │   │       sast       │
+│ Jest + cobert.│   │ npm audit +       │   │ Semgrep (código  │
+│ Node 18 e 20  │   │ varredura segredos│   │ fonte, OWASP)    │
+└───────┬───────┘   └─────────┬─────────┘   └────────┬─────────┘
+        └─────────────────────┼──────────────────────┘
+                              ▼
+                   ┌──────────────────────┐
+                   │        build         │   docker build
+                   │  imagem + smoke test │   + curl /health
+                   └──────────┬───────────┘
+                              ▼
+                   ┌──────────────────────┐
+                   │         dast         │   OWASP ZAP baseline
+                   │  app em execução     │   contra o container
+                   └──────────────────────┘
 ```
 
-- `test` e `security` rodam **em paralelo**. Um erro em um não derruba o outro,
+- `test`, `security` e `sast` rodam **em paralelo**. Um erro em um não derruba o outro,
   como nos slides 92 e 93.
-- `build` tem `needs: [test, security]`. Se qualquer um dos dois falhar, o `build`
+- `build` tem `needs: [test, security, sast]`. Se qualquer um dos três falhar, o `build`
   aparece como **skipped** e a esteira para ali, como no slide 97.
+- **SAST (Semgrep)**: analisa o código-fonte sem executá-lo, com as regras `p/javascript`,
+  `p/nodejs` e `p/owasp-top-ten`. **Validação**: o job falha se houver qualquer achado de
+  severidade `ERROR`. O relatório JSON fica como artefato `relatorio-sast`.
+- **DAST (OWASP ZAP)**: sobe a imagem Docker e roda o `zap-baseline.py` contra a aplicação
+  em execução. **Validação**: o job falha se o relatório tiver algum alerta de risco **Alto**;
+  alertas Médio e Baixo aparecem no Summary, mas não bloqueiam. O relatório (HTML e JSON)
+  fica como artefato `relatorio-dast`. Roda depois do `build`, então só testa uma imagem
+  que já passou nos testes.
 - O job `resultado` fecha a execução com um resumo em tabela no Summary do run.
 
 ### `CD`: Entrega Contínua (`.github/workflows/cd.yml`)
